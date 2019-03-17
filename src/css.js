@@ -20,8 +20,14 @@ const css = (strings, ...values) => {
     return className;
 }
 
-const injectRules = () => {
-    _cssRules.forEach((value, key) => {
+const injectRules = (id) => {
+    let rules = _cssRules.slice(0);
+
+    if (id) {
+        rules = rules.filter(f => f.id === id);    
+    }
+    
+    rules.forEach((value, key) => {
         if (document.getElementById(key)) {
             // Already mounted
             return;
@@ -31,9 +37,13 @@ const injectRules = () => {
     });
 }
 
-const unmountRules = () => {
+const unmountRules = (id) => {
 
-    let styles = document.head.getElementsByTagName('style').slice(0);
+    let styles = Array.prototype.slice.call(document.head.getElementsByTagName('style'), 0);
+    
+    if (id) {
+        styles = styles.filter(f => f.id === id);
+    }
     _cssRules.forEach((value, key) => {
         var node = styles.filter(f => f.id === key)[0];
 
