@@ -6,38 +6,35 @@ import pkg from './package.json';
 export default [
 	// browser-friendly UMD build
 	{
-		input: 'src/main.js',
+		input: 'src/index.js',
 		output: {
-			name: 'howLongUntilLunch',
+			name: 'restyled',
 			file: pkg.browser,
 			format: 'umd'
 		},
 		plugins: [
-			resolve(), // so Rollup can find node modules
-			commonjs(), // so Rollup can convert node modules to an ES modules
+			resolve(),
+			commonjs(),
 			babel({
-				exclude: 'node_modules/**' // only transpile our source code
+				exclude: 'node_modules/**'
 			})
 		]
 	},
-
 	// CommonJS (for Node)
 	{
-		input: 'src/main.js',
-		external: ['ms'],
+		input: 'src/index.js',
 		output: [
 			{ file: pkg.main, format: 'cjs' }
 		],
 		plugins: [
 			babel({
-				exclude: 'node_modules/**' // only transpile our source code
+				exclude: 'node_modules/**'
 			})
 		]
 	},
 	// ES module (for bundlers)
 	{
-		input: 'src/main.js',
-		external: ['ms'],
+		input: 'src/index.js',
 		output: [
 			{ file: pkg.module, format: 'es' }
 		]

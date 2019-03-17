@@ -1,43 +1,99 @@
-# rollup-starter-lib
+# restyled
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/rollup/rollup-starter-lib.svg)](https://greenkeeper.io/)
+CSS in JS styles for RE:DOM
 
-This repo contains a bare-bones example of how to create a library using Rollup, including importing a module from `node_modules` and converting it from CommonJS.
+## Installation
 
-We're creating a library called `how-long-till-lunch`, which usefully tells us how long we have to wait until lunch, using the [ms](https://github.com/zeit/ms) package:
-
-```js
-console.log('it will be lunchtime in ' + howLongTillLunch());
-```
-
-## Getting started
-
-Clone this repository and install its dependencies:
+Install this package via npm:
 
 ```bash
-git clone https://github.com/rollup/rollup-starter-lib
-cd rollup-starter-lib
-npm install
+npm install @johnrob1880/restyled
 ```
 
-`npm run build` builds the library to `dist`, generating three files:
+## Create
 
-* `dist/how-long-till-lunch.cjs.js`
-    A CommonJS bundle, suitable for use in Node.js, that `require`s the external dependency. This corresponds to the `"main"` field in package.json
-* `dist/how-long-till-lunch.esm.js`
-    an ES module bundle, suitable for use in other people's libraries and applications, that `import`s the external dependency. This corresponds to the `"module"` field in package.json
-* `dist/how-long-till-lunch.umd.js`
-    a UMD build, suitable for use in any environment (including the browser, as a `<script>` tag), that includes the external dependency. This corresponds to the `"browser"` field in package.json
+```js
+import { el, mount } from 'redom'
+import { create } from '@johnrob1880/restyled'
 
-`npm run dev` builds the library, then keeps rebuilding it whenever the source files change using [rollup-watch](https://github.com/rollup/rollup-watch).
+let restyled = create(el)
 
-`npm test` builds the library, then tests it.
+class App {
+    constructor() {
+        this.el = el('.app', this.button = restyled.button({
+            textContent: 'Submit',
+            // ... same props passed to redom el
+        })`
+            :this {
+                display: inline-block;
+                background-color: #000000;
+                color: #fff;
+                border: none;
+                padding: 6px 16px;
+            }
+        `)
+    }
+    onmount() {
+        // inject styles into the document's head section
+        restyled.inject(); 
+    }
+    onunmount() {
+        // remove styles from the document's head section
+        restyled.unmount();
+    }
+}
 
-## Variations
+mount(document.body, new App())
+```
 
-* [babel](https://github.com/rollup/rollup-starter-lib/tree/babel) — illustrates writing the source code in ES2015 and transpiling it for older environments with [Babel](https://babeljs.io/)
-* [buble](https://github.com/rollup/rollup-starter-lib/tree/buble) — similar, but using [Bublé](https://buble.surge.sh/) which is a faster alternative with less configuration
+## CSS
 
+```js 
+    import { css, injectRules, unmountRules } from '@johnrob1880/restyled'
+
+    let buttonStyles = css`
+        :this {
+            display: inline-block;
+            background-color: #000000;
+            color: #fff;
+            border: none;
+            padding: 6px 16px;
+        }
+    `
+
+    class App {
+        constructor() {
+            this.el =  el('.app', this.button = el('button', {
+                className = buttonStyles
+            }))
+        }
+        onmount() {
+            // inject styles into the document's head section
+            injectRules()
+        }
+        onunmount() {
+            // remove styles from the document's head section
+            unmountRules()
+        }
+    }
+
+    mount(document.body, new App())
+```
+
+## classNames utility
+
+```js
+    import { el, mount } from 'redom'
+    import { classNames } from '@johnrob1880/restyled'
+
+    let x = 1, y = 2
+
+    let app = el('.app', el('button', {
+        className: classNames('btn', 'primary', { 'disabled': x === y })
+    }))
+
+    mount(document.body, app)
+```
 
 
 ## License

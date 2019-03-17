@@ -1,28 +1,31 @@
 {
-  "name": "rollup-starter-lib",
+  "name": "restyled",
   "version": "1.0.0",
-  "main": "dist/how-long-till-lunch.cjs.js",
-  "module": "dist/how-long-till-lunch.esm.js",
-  "browser": "dist/how-long-till-lunch.umd.js",
-  "dependencies": {
-    "ms": "^2.0.0"
-  },
+  "main": "dist/restyled.cjs.js",
+  "module": "dist/restyled.esm.js",
+  "browser": "dist/restyled.umd.js",
   "devDependencies": {
     "@babel/core": "^7.1.2",
-    "@babel/preset-env": "^7.1.0",
     "@babel/plugin-external-helpers": "^7.0.0",
+    "@babel/preset-env": "^7.1.0",
     "rollup": "^0.66.2",
     "rollup-plugin-babel": "^4.0.3",
     "rollup-plugin-commonjs": "^9.1.8",
-    "rollup-plugin-node-resolve": "^3.4.0"
+    "rollup-plugin-node-resolve": "^3.4.0",
+    "rollup-plugin-uglify": "^6.0.2",
+    "uglify": "^0.1.5"
   },
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
     "test": "node test/test.js",
-    "pretest": "npm run build"
+    "pretest": "npm run build",
+    "uglify": "npm run uglify-cjs && npm run uglify-umd",
+    "uglify-cjs": "uglifyjs dist/restyled.cjs.js -cm -o dist/restyled.cjs.js",
+    "uglify-umd": "uglifyjs dist/restyled.umd.js -cm -o dist/restyled.umd.js"
   },
   "files": [
     "dist"
-  ]
+  ],
+  "dependencies": {}
 }
