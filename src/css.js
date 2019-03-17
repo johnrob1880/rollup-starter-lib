@@ -113,7 +113,7 @@ const globalCss = (strings, ...values) => {
 
     let rules = stringifyRules(strCss, className);
 
-    if (__cssRules.has(className)) {
+    if (_cssRules.has(className)) {
         _cssRules.set(className, mergeRules(className, _cssRules.get(className), rules));
     } else {
         _cssRules.set(className, rules);
