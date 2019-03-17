@@ -92,9 +92,38 @@ const create = (el) => {
     return cssProxy;
 }
 
+const mergeRules = (ns, ...rules) => {
+    
+    return `.${ns}{` + (rules || []).reduce((prev, current) => {
+        prev += current.replace(`.${ns}{`, '').replace(/\}$/, '');
+        return prev;
+    }, '') + '}';
+}
+
+const globalCss = (strings, ...values) => {
+    let strCss = '';
+    let className = `__global__`;
+
+    for (let i = 0; i < strings.length; i++) {
+        if (i > 0) {
+            strCss += values[i - 1];
+        }
+        strCss += strings[i];
+    }
+
+    let rules = stringifyRules(strCss, className);
+
+    if (__cssRules.has(className)) {
+        _cssRules.set(className, mergeRules(className, _cssRules.get(className), rules));
+    } else {
+        _cssRules.set(className, rules);
+    }
+}
+
 export {
     css,
     injectRules,
     unmountRules,
-    create
+    create,
+    globalCss
 }
