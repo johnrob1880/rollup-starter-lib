@@ -1,12 +1,13 @@
 {
   "name": "@johnrob1880/restyled",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "dist/restyled.cjs.js",
   "module": "dist/restyled.esm.js",
   "browser": "dist/restyled.umd.js",
   "devDependencies": {
     "@babel/core": "^7.1.2",
     "@babel/plugin-external-helpers": "^7.0.0",
+    "@babel/plugin-proposal-object-rest-spread": "^7.3.4",
     "@babel/preset-env": "^7.1.0",
     "http-server": "^0.11.1",
     "redom": "^3.18.0",

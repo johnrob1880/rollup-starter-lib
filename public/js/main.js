@@ -590,11 +590,36 @@
     return sheet;
   };
 
+  const isString = test => typeof test === 'string' || test instanceof String;
+
+  const isObject = test => test && typeof test === 'object' && test.constructor === Object;
+
   const isHtmlTag = input => {
     return document.createElement(input).toString() != "[object HTMLUnknownElement]";
   };
 
   const isElement = target => target instanceof Element || target instanceof HTMLDocument;
+
+  function classNames(...args) {
+    const classes = [];
+    let i,
+        len = args.length,
+        arg;
+
+    for (i = 0; i < len; i++) {
+      arg = args[i];
+
+      if (isString(arg)) {
+        classes.push(arg);
+      } else if (isObject(arg)) {
+        classes.push(classNames(...arg));
+      } else if (isObject(arg)) {
+        classes.push(classNames(...Object.keys(arg).filter(k => arg[k])));
+      }
+    }
+
+    return classes.join(' ');
+  }
 
   const _cssRules = new Map();
 
@@ -671,6 +696,15 @@
     });
   };
 
+  const extend = (el, prop, style, props) => {
+    let rs = create(el);
+    let elem = rs[prop](Object.assign({}, props, {
+      className: classNames(style.className, props && props.className || '')
+    }));
+    console.log('extended', elem);
+    return elem;
+  };
+
   const create = el => {
     const cssHandler = {
       get: function (obj, prop) {
@@ -698,6 +732,7 @@
 
               element.unmountRules = () => unmountRules.call(null, style.className);
 
+              element.extend = extend.bind(null, el, prop, style);
               return element;
             };
           };
@@ -789,7 +824,13 @@
             }
         `, this.button2 = el('button.unstyled', {
         textContent: 'Unstyled'
-      }));
+      }), this.button3 = this.button.extend({
+        textContent: 'Extended'
+      })`
+            :this {
+                padding: 20px;
+            }
+        `);
     }
 
     onmount() {

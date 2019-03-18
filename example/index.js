@@ -15,7 +15,14 @@ class App {
             }
         `, this.button2 = el('button.unstyled', {
             textContent: 'Unstyled'
-        }));
+        }),
+        this.button3 = this.button.extend({
+            textContent: 'Extended'
+        })`
+            :this {
+                padding: 20px;
+            }
+        `);
 
         
     }

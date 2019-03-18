@@ -1,6 +1,7 @@
 import { stringifyRules } from './rules';
 import { createSheet } from './sheet';
 import { isHtmlTag, isElement } from './utils';
+import classNames from './classNames';
 
 const _cssRules = new Map();
 const _globalRules = new Map();
@@ -71,6 +72,15 @@ const unmountRules = (className) => {
     });
 }
 
+const extend = (el, prop, style, props) => {    
+    let rs = create(el);
+    let elem = rs[prop](Object.assign({}, props, {
+        className: classNames(style.className, props && props.className || '')
+    }));
+    console.log('extended', elem);    
+    return elem;
+}
+
 const create = (el) => {
 
     const cssHandler = {
@@ -104,6 +114,7 @@ const create = (el) => {
 
                         element.injectRules = () => injectRules.call(null, style.className);
                         element.unmountRules = () => unmountRules.call(null, style.className);
+                        element.extend = extend.bind(null, el, prop, style);
     
                         return element;
                     }
