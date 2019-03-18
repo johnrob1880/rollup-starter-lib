@@ -582,11 +582,35 @@
     return strRules;
   };
 
+  const buildRules = (strings, values) => {
+    let strCss = '';
+
+    for (let i = 0; i < strings.length; i++) {
+      if (i > 0) {
+        strCss += values[i - 1];
+      }
+
+      strCss += strings[i];
+    }
+
+    return strCss;
+  };
+
   const createSheet = (id, rules) => {
     let sheet = document.createElement('style');
     sheet.type = 'text/css';
     sheet.innerHTML = rules;
     sheet.id = id;
+    return sheet;
+  };
+
+  const getSheet = id => {
+    let sheet;
+    Array.prototype.slice.call(document.head.getElementsByTagName('style')).forEach(s => {
+      if (s.id === id) {
+        sheet = s;
+      }
+    });
     return sheet;
   };
 
@@ -621,6 +645,8 @@
     return classes.join(' ');
   }
 
+  const _themes = new Map();
+
   const _cssRules = new Map();
 
   const _globalRules = new Map();
@@ -630,23 +656,13 @@
       className,
       base
     } = props || {};
-    let strCss = '';
 
     let merge = !!className && _cssRules.has(className);
 
     let mergeBase = !!base && _cssRules.has(base);
 
     let cls = className || `s_${Math.random().toString(36).substr(2, 9)}`;
-
-    for (let i = 0; i < strings.length; i++) {
-      if (i > 0) {
-        strCss += values[i - 1];
-      }
-
-      strCss += strings[i];
-    }
-
-    let rules = stringifyRules(strCss, cls);
+    let rules = stringifyRules(buildRules(strings, values), cls);
 
     if (merge) {
       rules = mergeRules(cls, _cssRules.get(cls), rules);
@@ -710,8 +726,36 @@
     let elem = rs[prop](Object.assign({}, props, {
       className: classNames(style.className, props && props.className || '')
     }));
-    console.log('extended', elem);
     return elem;
+  };
+
+  const themeProxy = name => {
+    return {
+      apply: () => {
+        let sheet;
+
+        _themes.forEach((value, key) => {
+          sheet = getSheet(key);
+
+          if (sheet) {
+            sheet.parentNode.removeChild(sheet);
+          }
+        });
+
+        sheet = createSheet(name, _themes.get(name));
+        document.head.insertBefore(sheet, document.head.firstElementChild);
+        return name;
+      }
+    };
+  };
+
+  const theme = name => (strings, ...values) => {
+    let rules = buildRules(strings, values);
+    rules = `:root{${stringifyRules(rules, name)}}`;
+
+    _themes.set(name, rules);
+
+    return themeProxy(name);
   };
 
   const create = el => {
@@ -726,6 +770,12 @@
         if (prop === 'unmountRules') {
           return function () {
             return unmountRules.apply(this, arguments);
+          };
+        }
+
+        if (prop === 'theme') {
+          return function () {
+            return applyTheme.apply(this, arguments);
           };
         }
 
@@ -788,50 +838,25 @@
     }, '') + '}';
   };
 
-  const globalCss = cls => (strings, ...values) => {
-    let strCss = '';
-    let merge = false;
-
-    if (cls) {
-      if (_globalRules.has(cls)) {
-        merge = true;
-      }
-    }
-
-    let className = cls || `g_${Math.random().toString(36).substr(2, 9)}`;
-
-    for (let i = 0; i < strings.length; i++) {
-      if (i > 0) {
-        strCss += values[i - 1];
-      }
-
-      strCss += strings[i];
-    }
-
-    let rules = stringifyRules(strCss, className);
-
-    if (merge) {
-      rules = mergeRules(className, _globalRules.get(className), rules);
-    }
-
-    _globalRules.set(className, rules);
-
-    return styleProxy(className);
-  };
-
   const restyled = create(el);
-  const parentStyle = css()`
-:this {
-    color: orange;
-}
-`;
   const childStyle = css({
-    className: 'wild-style',
-    base: parentStyle.className
+    className: 'wild-style'
   })`
 :this {
     border: 3px solid green;
 }
+`;
+  const defaultTheme = theme('default')`
+    --primary-color: #dddddd;
+    --primary-color-active: #cccccc;
+    --text-on-primary: #000;
+    --text-on-primary-active: #000;
+`;
+  const brightTheme = theme('bright')`
+    --primary-color: red;
+    --primary-color-active: maroon;
+    --text-on-primary: white;
+    --text-on-primary-active: yellow;
 `;
 
   class App {
@@ -845,6 +870,10 @@
                 background-color: var(--primary-color, #cdcdcd);
                 color: var(--text-on-primary, black);
             }
+            :this:hover {
+                background-color: var(--primary-color-active, #dddddd);
+                color: var(--text-on-primary-active, black);
+            }
         `, this.button2 = el('button.unstyled', {
         textContent: 'Unstyled'
       }), this.button3 = this.button.extend({
@@ -854,27 +883,21 @@
                 padding: 20px;
             }
         `);
+      this.theme = 'default';
     }
 
     onmount() {
-      this.theme = globalCss('theme')`
-        :root {
-            --primary-color: red;
-            --text-on-primary: white;
-        }
-        `;
       restyled.injectRules();
+      defaultTheme.apply();
     }
 
     changeTheme() {
-      restyled.unmountRules('theme');
-      this.theme = globalCss('theme')`
-        :root {
-            --primary-color: blue;
-            --text-on-primary: white;
-        }
-        `;
-      this.theme.injectRules();
+      if (this.theme === 'default') {
+        this.theme = brightTheme.apply();
+      } else {
+        this.theme = defaultTheme.apply();
+      }
+
       let newStyle = css()`
             :this {
                 background-color: yellow;

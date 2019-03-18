@@ -7,6 +7,22 @@ const createSheet = (id, rules) => {
     return sheet;
 }
 
+const getSheet = (id) => {
+    let sheet;
+    Array.prototype.slice.call(document.head.getElementsByTagName('style')).forEach( s => {
+        if (s.id === id) {
+            sheet = s;
+        }
+    });
+    return sheet;
+}
+
+const getSheets = () => {
+    return Array.prototype.slice.call(document.head.getElementsByTagName('style'));
+}
+
 export { 
-    createSheet
+    createSheet,
+    getSheet,
+    getSheets
 }

@@ -1,21 +1,26 @@
 import { el, mount } from 'redom';
-import { create, css, globalCss } from './../src/index';
+import { create, css, theme } from './../src/index';
 
 const restyled = create(el);
 
-const parentStyle = css()`
-:this {
-    color: orange;
-}
-`;
-
 const childStyle = css({
-    className: 'wild-style',
-    base: parentStyle.className
+    className: 'wild-style'
 })`
 :this {
     border: 3px solid green;
 }
+`
+const defaultTheme = theme('default')`
+    --primary-color: #dddddd;
+    --primary-color-active: #cccccc;
+    --text-on-primary: #000;
+    --text-on-primary-active: #000;
+`
+const brightTheme = theme('bright')`
+    --primary-color: red;
+    --primary-color-active: maroon;
+    --text-on-primary: white;
+    --text-on-primary-active: yellow;
 `
 
 class App {
@@ -29,6 +34,10 @@ class App {
                 background-color: var(--primary-color, #cdcdcd);
                 color: var(--text-on-primary, black);
             }
+            :this:hover {
+                background-color: var(--primary-color-active, #dddddd);
+                color: var(--text-on-primary-active, black);
+            }
         `, this.button2 = el('button.unstyled', {
             textContent: 'Unstyled'
         }),
@@ -40,31 +49,21 @@ class App {
             }
         `);
 
+        this.theme = 'default';
         
     }
     onmount() {
-        this.theme = globalCss('theme')`
-        :root {
-            --primary-color: red;
-            --text-on-primary: white;
-        }
-        `;
-
         restyled.injectRules();
+        defaultTheme.apply();
 
     }
     changeTheme() {
-        
-        restyled.unmountRules('theme');
-
-        this.theme = globalCss('theme')`
-        :root {
-            --primary-color: blue;
-            --text-on-primary: white;
+      
+        if (this.theme === 'default') {
+            this.theme = brightTheme.apply();
+        } else {
+            this.theme = defaultTheme.apply();
         }
-        `;
-        this.theme.injectRules();
-
         let newStyle = css()`
             :this {
                 background-color: yellow;

@@ -1,27 +1,20 @@
-import { stringifyRules } from './rules';
-import { createSheet } from './sheet';
+import { buildRules, stringifyRules } from './rules';
+import { createSheet, getSheet } from './sheet';
 import { isHtmlTag, isElement } from './utils';
 import classNames from './classNames';
 
+const _themes = new Map();
 const _cssRules = new Map();
 const _globalRules = new Map();
 
 const css = (props) => (strings, ...values) => {
     const { className, base } = props || {};
-    let strCss = '';
     let merge = !!className && _cssRules.has(className);
     let mergeBase = !!base && _cssRules.has(base);
 
     let cls = className || `s_${Math.random().toString(36).substr(2, 9)}`;
 
-    for (let i = 0; i < strings.length; i++) {
-        if (i > 0) {
-            strCss += values[i - 1];
-        }
-        strCss += strings[i];
-    }
-
-    let rules = stringifyRules(strCss, cls);
+    let rules = stringifyRules(buildRules(strings, values), cls);
     if (merge) {
         rules = mergeRules(cls, _cssRules.get(cls), rules);
     }
@@ -80,9 +73,32 @@ const extend = (el, prop, style, props) => {
     let rs = create(el);
     let elem = rs[prop](Object.assign({}, props, {
         className: classNames(style.className, props && props.className || '')
-    }));
-    console.log('extended', elem);    
+    }));  
     return elem;
+}
+
+const themeProxy = (name) => {
+    return {
+        apply: () => {
+            let sheet;
+            _themes.forEach((value, key) => {
+                sheet = getSheet(key);
+                if (sheet) {
+                    sheet.parentNode.removeChild(sheet);
+                }
+            });
+            sheet = createSheet(name, _themes.get(name));
+            document.head.insertBefore(sheet, document.head.firstElementChild);
+            return name;
+        }
+    }
+}
+
+const theme = (name) => (strings, ...values) => {
+    let rules = buildRules(strings, values);
+    rules = `:root{${stringifyRules(rules, name)}}`;
+    _themes.set(name, rules);
+    return themeProxy(name);
 }
 
 const create = (el) => {
@@ -99,6 +115,12 @@ const create = (el) => {
             if (prop === 'unmountRules') {
                 return function () {
                    return unmountRules.apply(this, arguments);
+                }
+            }
+
+            if (prop === 'theme') {
+                return function () {
+                    return applyTheme.apply(this, arguments);
                 }
             }
 
@@ -161,7 +183,6 @@ const mergeRules = (ns, ...rules) => {
 }
 
 const globalCss = cls => (strings, ...values) => {
-    let strCss = '';
     let merge = false;
     if (cls) {
         if (_globalRules.has(cls)) {
@@ -169,15 +190,8 @@ const globalCss = cls => (strings, ...values) => {
         }
     }
     let className = cls ||  `g_${Math.random().toString(36).substr(2, 9)}`;
-
-    for (let i = 0; i < strings.length; i++) {
-        if (i > 0) {
-            strCss += values[i - 1];
-        }
-        strCss += strings[i];
-    }
-
-    let rules = stringifyRules(strCss, className);
+   
+    let rules = stringifyRules(buildRules(strings, values), className);
 
     if (merge) {
         rules = mergeRules(className, _globalRules.get(className), rules);
@@ -193,5 +207,6 @@ export {
     injectRules,
     unmountRules,
     create,
-    globalCss
+    globalCss,
+    theme
 }

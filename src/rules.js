@@ -19,7 +19,19 @@ const stringifyRules = (rules, styleId) => {
     return strRules;
 }
 
+const buildRules = (strings, values) => {
+    let strCss = '';
+    for (let i = 0; i < strings.length; i++) {
+        if (i > 0) {
+            strCss += values[i - 1];
+        }
+        strCss += strings[i];
+    }
+    return strCss;
+}
+
 export {
+    buildRules,
     stringifyRules,
     compressRules
 }
