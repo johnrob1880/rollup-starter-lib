@@ -1,6 +1,6 @@
 {
   "name": "@johnrob1880/restyled",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "main": "dist/restyled.cjs.js",
   "module": "dist/restyled.esm.js",
   "browser": "dist/restyled.umd.js",
@@ -8,6 +8,8 @@
     "@babel/core": "^7.1.2",
     "@babel/plugin-external-helpers": "^7.0.0",
     "@babel/preset-env": "^7.1.0",
+    "http-server": "^0.11.1",
+    "redom": "^3.18.0",
     "rollup": "^0.66.2",
     "rollup-plugin-babel": "^4.0.3",
     "rollup-plugin-commonjs": "^9.1.8",
@@ -17,7 +19,7 @@
   },
   "scripts": {
     "build": "rollup -c",
-    "dev": "rollup -c -w",
+    "dev": "rollup -m -w -c rollup.example.js -f iife example/index.js -o public/js/main.js",
     "test": "node test/test.js",
     "pretest": "npm run build",
     "uglify": "npm run uglify-cjs && npm run uglify-umd",

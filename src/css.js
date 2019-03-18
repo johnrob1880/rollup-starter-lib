@@ -1,11 +1,19 @@
 import { stringifyRules } from './rules';
 import { createSheet } from './sheet';
+import { isHtmlTag, isElement } from './utils';
 
 const _cssRules = new Map();
+const _globalRules = new Map();
 
-const css = (strings, ...values) => {
+const css = cls => (strings, ...values) => {
     let strCss = '';
-    let className = `s_${Math.random().toString(36).substr(2, 9)}`;
+    let merge = false
+    if (cls) {
+        if (_cssRules.has(cls)) {
+            merge = true;
+        }
+    }
+    let className = cls || `s_${Math.random().toString(36).substr(2, 9)}`;
 
     for (let i = 0; i < strings.length; i++) {
         if (i > 0) {
@@ -15,21 +23,23 @@ const css = (strings, ...values) => {
     }
 
     let rules = stringifyRules(strCss, className);
+    if (merge) {
+        rules = mergeRules(className, _cssRules.get(className), rules);
+    }
     _cssRules.set(className, rules);
-
-    return className;
+    return styleProxy(className);
 }
 
 const injectRules = (id) => {
-    let rules = _cssRules.slice(0);
 
-    if (id) {
-        rules = rules.filter(f => f.id === id);    
-    }
-    
-    rules.forEach((value, key) => {
-        if (document.getElementById(key)) {
-            // Already mounted
+    // Global rules should be first in order to cascade properly
+    let allRules = new Map([..._globalRules, ..._cssRules]);
+
+    allRules.forEach((value, key) => {
+        if (document.getElementById(key)) {            
+            return; // Already mounted
+        }
+        if (id && key !== id) {
             return;
         }
         var sheet = createSheet(key, value);
@@ -37,25 +47,28 @@ const injectRules = (id) => {
     });
 }
 
-const unmountRules = (id) => {
+const unmountRules = (className) => {
+
+    let allRules = new Map([..._globalRules, ..._cssRules]);
 
     let styles = Array.prototype.slice.call(document.head.getElementsByTagName('style'), 0);
-    
-    if (id) {
-        styles = styles.filter(f => f.id === id);
+
+    if (className) {
+        styles = styles.filter(f => f.id === className);
     }
-    _cssRules.forEach((value, key) => {
+    
+    allRules.forEach((value, key) => {
         var node = styles.filter(f => f.id === key)[0];
 
         if (node) {
             document.head.removeChild(node);
-        }
+            if (_cssRules.has(key)) {
+                _cssRules.delete(key);
+            } else if (_globalRules.has(key)) {
+                _globalRules.delete(key);
+            }
+        }        
     });
-    _cssRules.clear();
-}
-
-const isHtmlTag = (input) => {
-    return document.createElement(input).toString() != "[object HTMLUnknownElement]";
 }
 
 const create = (el) => {
@@ -63,15 +76,15 @@ const create = (el) => {
     const cssHandler = {
         get: function (obj, prop) {
 
-            if (prop === 'inject') {
-                return function (arg) {
-                    injectRules(arg)
+            if (prop === 'injectRules') {
+                return function () {
+                    return injectRules.apply(this, arguments);
                 }
             }
 
-            if (prop === 'unmount') {
-                return function (arg) {
-                    unmountRules(arg);
+            if (prop === 'unmountRules') {
+                return function () {
+                   return unmountRules.apply(this, arguments);
                 }
             }
 
@@ -83,11 +96,14 @@ const create = (el) => {
 
                     return (strings, ...values) => {
 
-                        let cls = css(strings, values);
+                        let style = css()(strings, values);
 
-                        element.classList.add(cls);
+                        element.classList.add(style.className);
 
-                        obj['_restyled'] = cls;
+                        obj['_restyled'] = style.className;
+
+                        element.injectRules = () => injectRules.call(null, style.className);
+                        element.unmountRules = () => unmountRules.call(null, style.className);
     
                         return element;
                     }
@@ -102,6 +118,25 @@ const create = (el) => {
     return cssProxy;
 }
 
+const selectorOrElement = (target) => {
+    if (typeof target === 'string') {
+        return Array.prototype.slice.call(document.querySelectorAll(target));
+    } else if (isElement(target)) {
+        return [target];
+    } else {
+        return Array.prototype.slice.call(target);
+    }
+}
+
+const styleProxy = (cls) => {
+    return {
+        className: cls,
+        injectRules: () => { injectRules.call(null, cls); return styleProxy(cls) },
+        unmountRules: () => { unmountRules.call(null, cls); return styleProxy(cls) },
+        applyRules: (el) => { selectorOrElement(el).forEach(elem => elem.classList.add(cls)) }
+    }
+}
+
 const mergeRules = (ns, ...rules) => {
     
     return `.${ns}{` + (rules || []).reduce((prev, current) => {
@@ -110,9 +145,15 @@ const mergeRules = (ns, ...rules) => {
     }, '') + '}';
 }
 
-const globalCss = (strings, ...values) => {
+const globalCss = cls => (strings, ...values) => {
     let strCss = '';
-    let className = `__global__`;
+    let merge = false;
+    if (cls) {
+        if (_globalRules.has(cls)) {
+            merge = true;
+        }
+    }
+    let className = cls ||  `g_${Math.random().toString(36).substr(2, 9)}`;
 
     for (let i = 0; i < strings.length; i++) {
         if (i > 0) {
@@ -123,11 +164,13 @@ const globalCss = (strings, ...values) => {
 
     let rules = stringifyRules(strCss, className);
 
-    if (_cssRules.has(className)) {
-        _cssRules.set(className, mergeRules(className, _cssRules.get(className), rules));
-    } else {
-        _cssRules.set(className, rules);
+    if (merge) {
+        rules = mergeRules(className, _globalRules.get(className), rules);
     }
+
+    _globalRules.set(className, rules);    
+
+    return styleProxy(className);
 }
 
 export {
