@@ -1,12 +1,28 @@
 import { el, mount } from 'redom';
 import { create, css, globalCss } from './../src/index';
 
-const restyled = create(el)
+const restyled = create(el);
+
+const parentStyle = css()`
+:this {
+    color: orange;
+}
+`;
+
+const childStyle = css({
+    className: 'wild-style',
+    base: parentStyle.className
+})`
+:this {
+    border: 3px solid green;
+}
+`
 
 class App {
     constructor() {
         this.el = el('.example', this.button = restyled.button({
             textContent: 'Change Theme',
+            className: childStyle.className,
             onclick: this.changeTheme.bind(this)
         })`
             :this {

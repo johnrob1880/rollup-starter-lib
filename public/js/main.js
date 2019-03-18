@@ -625,17 +625,18 @@
 
   const _globalRules = new Map();
 
-  const css = cls => (strings, ...values) => {
+  const css = props => (strings, ...values) => {
+    const {
+      className,
+      base
+    } = props || {};
     let strCss = '';
-    let merge = false;
 
-    if (cls) {
-      if (_cssRules.has(cls)) {
-        merge = true;
-      }
-    }
+    let merge = !!className && _cssRules.has(className);
 
-    let className = cls || `s_${Math.random().toString(36).substr(2, 9)}`;
+    let mergeBase = !!base && _cssRules.has(base);
+
+    let cls = className || `s_${Math.random().toString(36).substr(2, 9)}`;
 
     for (let i = 0; i < strings.length; i++) {
       if (i > 0) {
@@ -645,15 +646,23 @@
       strCss += strings[i];
     }
 
-    let rules = stringifyRules(strCss, className);
+    let rules = stringifyRules(strCss, cls);
 
     if (merge) {
-      rules = mergeRules(className, _cssRules.get(className), rules);
+      rules = mergeRules(cls, _cssRules.get(cls), rules);
     }
 
-    _cssRules.set(className, rules);
+    if (mergeBase) {
+      let baseRules = _cssRules.get(base);
 
-    return styleProxy(className);
+      baseRules = baseRules.replace(/[^\}]*\{/, '');
+      baseRules = baseRules.replace(/\}$/, '');
+      rules = mergeRules(cls, baseRules, rules);
+    }
+
+    _cssRules.set(cls, rules);
+
+    return styleProxy(cls);
   };
 
   const injectRules = id => {
@@ -811,11 +820,25 @@
   };
 
   const restyled = create(el);
+  const parentStyle = css()`
+:this {
+    color: orange;
+}
+`;
+  const childStyle = css({
+    className: 'wild-style',
+    base: parentStyle.className
+  })`
+:this {
+    border: 3px solid green;
+}
+`;
 
   class App {
     constructor() {
       this.el = el('.example', this.button = restyled.button({
         textContent: 'Change Theme',
+        className: childStyle.className,
         onclick: this.changeTheme.bind(this)
       })`
             :this {
