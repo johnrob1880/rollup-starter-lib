@@ -27,12 +27,15 @@ const brightTheme = theme('bright')`
 const label1 = css({className: '--orange', base: 'labels'})`
     :this {
         color: orange;
+        background-color: transparent;
     }
 `
+
 // no reference needed, injected with restyled.injectRules() call.
 css({className: '--blue', base: 'labels'})`
     :this {
         color: blue;
+        background-color: #ebebeb;
     }
 `
 
@@ -72,6 +75,7 @@ class App {
     onmount() {
         restyled.injectRules();
         defaultTheme.apply();
+
 
         setTimeout(() => {
             label1.unmountRules();

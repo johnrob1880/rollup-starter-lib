@@ -664,6 +664,7 @@
     let mergeBase = !!base;
     let cls = className || `s_${Math.random().toString(36).substr(2, 9)}`;
     let rules = stringifyRules(buildRules(strings, values), mergeBase ? `${base}${cls}` : cls);
+    let originalRules = rules;
 
     if (mergeBase) {
       let baseRules = _cssRules.get(base) || '';
@@ -672,7 +673,7 @@
 
     _cssRules.set(mergeBase ? base : cls, rules);
 
-    return styleProxy(cls, base);
+    return styleProxy(cls, base, originalRules);
   };
 
   const injectRules = (id, base) => {
@@ -818,9 +819,38 @@
     }
   };
 
-  const styleProxy = (cls, base) => {
+  const inlineStyle = (...rules) => {
+    let str = '';
+    (rules || []).forEach(rule => {
+      str += rule.replace(/^\.[^\{]+/g, '').replace(/\}/g, '').replace(/\{/g, '');
+    });
+    return str;
+  };
+
+  const cssName = name => {
+    return name.replace(/-([a-z])/g, function (g) {
+      return g[1].toUpperCase();
+    });
+  };
+
+  const styleObject = (...rules) => {
+    let style = {};
+    let styles = inlineStyle(...rules);
+    let arr = styles.split(';');
+    arr.filter(c => !!c).forEach(rule => {
+      let split = rule.split(':');
+      style[cssName(split[0])] = split[1];
+    });
+    return style;
+  };
+
+  const styleProxy = (cls, base, rules) => {
     return {
       className: cls,
+      fullClassName: base ? `${base}${cls}` : cls,
+      rules: () => rules,
+      style: () => styleObject(rules),
+      inlineStyle: () => inlineStyle(rules),
       injectRules: () => {
         injectRules.call(null, cls, base);
         return styleProxy(cls);
@@ -837,7 +867,6 @@
 
   const mergeRules = (ns, ...rules) => {
     return (rules || []).reduce((prev, current) => {
-      //prev += current.replace(`.${ns}{`, '').replace(/\}$/, '');
       prev += current.replace(':host', ns);
       return prev;
     }, '');
@@ -869,6 +898,7 @@
   })`
     :this {
         color: orange;
+        background-color: transparent;
     }
 `; // no reference needed, injected with restyled.injectRules() call.
 
@@ -878,6 +908,7 @@
   })`
     :this {
         color: blue;
+        background-color: #ebebeb;
     }
 `;
 
