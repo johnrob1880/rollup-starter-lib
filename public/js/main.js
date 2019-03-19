@@ -663,7 +663,7 @@
 
     let mergeBase = !!base;
     let cls = className || `s_${Math.random().toString(36).substr(2, 9)}`;
-    let rules = stringifyRules(buildRules(strings, values), mergeBase ? `${base}${cls}` : cls);
+    let rules = stringifyRules(buildRules(strings, values), cls);
     let originalRules = rules;
 
     if (mergeBase) {
@@ -845,10 +845,9 @@
   };
 
   const styleProxy = (cls, base, rules) => {
-    let id = base ? `${base}${cls}` : cls;
     return {
-      className: id,
-      subClass: base ? cls : '',
+      className: cls,
+      base: base,
       rules: () => rules,
       style: () => styleObject(rules),
       inlineStyle: () => inlineStyle(rules),
@@ -863,6 +862,21 @@
       applyRules: el => {
         selectorOrElement(el).forEach(elem => elem.classList.add(cls));
         return styleProxy(cls, base, rules);
+      },
+      create: h => {
+        return new Proxy(h, {
+          get: (obj, prop) => {
+            if (isHtmlTag(prop)) {
+              return (...props) => {
+                let element = h(prop, props);
+                element.className = `${cls}${element.className ? ' ' + element.className : ''}`;
+                return element;
+              };
+            }
+
+            return obj[prop];
+          }
+        });
       }
     };
   };
@@ -894,22 +908,46 @@
     --text-on-primary: white;
     --text-on-primary-active: yellow;
 `;
-  const label1 = css({
-    className: '--orange',
+  const orangeLabel = css({
+    className: 'label--orange',
     base: 'labels'
   })`
     :this {
         color: orange;
         background-color: transparent;
     }
-`; // no reference needed, injected with restyled.injectRules() call.
-
+    :this:hover {
+        color: red;
+    }
+`;
   css({
-    className: '--blue',
+    className: 'tropical-label'
+  })`
+    :this {
+        display: inline-block;
+        border: 1px solid green;
+        padding: 6px 12px;
+    }
+    :this:hover {
+        color: purple;
+        background-color: ${orangeLabel.style().color};
+    }
+`;
+  const labelFactory = orangeLabel.create(el); // css factory example
+
+  const tropicalLabel = labelFactory.label({
+    className: 'tropical-label',
+    textContent: 'Hola',
+    onclick: () => alert('hola')
+  });
+  const blueLabel = css({
+    className: 'label--blue',
     base: 'labels'
   })`
     :this {
-        color: blue;
+        color: blue;        
+    }
+    :this:hover {
         background-color: #ebebeb;
     }
 `;
@@ -937,9 +975,9 @@
             :this {
                 padding: 20px;
             }
-        `, this.orangeLabel = el(`label.labels--orange`, {
+        `, orangeLabel, tropicalLabel, el(`label.label--orange`, {
         textContent: 'Orange Label'
-      }), el(`label.labels--blue`, {
+      }), el(`label.${blueLabel.className}`, {
         textContent: 'Blue Label'
       }));
       this.theme = 'default';
@@ -948,10 +986,6 @@
     onmount() {
       restyled.injectRules();
       defaultTheme.apply();
-      setTimeout(() => {
-        label1.unmountRules();
-        this.orangeLabel.textContent = 'Plain Label!';
-      }, 2000);
     }
 
     changeTheme() {

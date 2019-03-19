@@ -1,6 +1,6 @@
 {
   "name": "@johnrob1880/restyled",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "main": "dist/restyled.cjs.js",
   "module": "dist/restyled.esm.js",
   "browser": "dist/restyled.umd.js",

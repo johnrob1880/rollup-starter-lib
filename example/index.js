@@ -24,17 +24,43 @@ const brightTheme = theme('bright')`
 `
 
 
-const label1 = css({className: '--orange', base: 'labels'})`
+const orangeLabel = css({className: 'label--orange', base: 'labels'})`
     :this {
         color: orange;
         background-color: transparent;
     }
+    :this:hover {
+        color: red;
+    }
 `
 
-// no reference needed, injected with restyled.injectRules() call.
-css({className: '--blue', base: 'labels'})`
+css({className: 'tropical-label'})`
     :this {
-        color: blue;
+        display: inline-block;
+        border: 1px solid green;
+        padding: 6px 12px;
+    }
+    :this:hover {
+        color: purple;
+        background-color: ${orangeLabel.style().color};
+    }
+`;
+
+const labelFactory = orangeLabel.create(el);
+
+// css factory example
+const tropicalLabel  = labelFactory.label({
+    className: 'tropical-label', 
+    textContent: 'Hola', 
+    onclick: () => alert('hola')
+});
+
+
+const blueLabel = css({className: 'label--blue', base: 'labels'})`
+    :this {
+        color: blue;        
+    }
+    :this:hover {
         background-color: #ebebeb;
     }
 `
@@ -65,8 +91,10 @@ class App {
                 padding: 20px;
             }
         `,
-        this.orangeLabel = el(`label.labels--orange`, { textContent: 'Orange Label'}),
-        el(`label.labels--blue`, { textContent: 'Blue Label'})
+        orangeLabel,
+        tropicalLabel,
+        el(`label.label--orange`, { textContent: 'Orange Label'}),
+        el(`label.${blueLabel.className}`, { textContent: 'Blue Label'})
         );
 
         this.theme = 'default';
@@ -75,12 +103,7 @@ class App {
     onmount() {
         restyled.injectRules();
         defaultTheme.apply();
-
-
-        setTimeout(() => {
-            label1.unmountRules();
-            this.orangeLabel.textContent = 'Plain Label!';
-        }, 2000);
+      
     }
     changeTheme() {
       
