@@ -23,6 +23,20 @@ const brightTheme = theme('bright')`
     --text-on-primary-active: yellow;
 `
 
+
+const label1 = css({className: '--orange', base: 'labels'})`
+    :this {
+        color: orange;
+    }
+`
+// no reference needed, injected with restyled.injectRules() call.
+css({className: '--blue', base: 'labels'})`
+    :this {
+        color: blue;
+    }
+`
+
+
 class App {
     constructor() {
         this.el = el('.example', this.button = restyled.button({
@@ -47,7 +61,10 @@ class App {
             :this {
                 padding: 20px;
             }
-        `);
+        `,
+        this.orangeLabel = el(`label.labels--orange`, { textContent: 'Orange Label'}),
+        el(`label.labels--blue`, { textContent: 'Blue Label'})
+        );
 
         this.theme = 'default';
         
@@ -56,6 +73,10 @@ class App {
         restyled.injectRules();
         defaultTheme.apply();
 
+        setTimeout(() => {
+            label1.unmountRules();
+            this.orangeLabel.textContent = 'Plain Label!';
+        }, 2000);
     }
     changeTheme() {
       

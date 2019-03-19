@@ -657,31 +657,25 @@
       base
     } = props || {};
 
-    let merge = !!className && _cssRules.has(className);
-
-    let mergeBase = !!base && _cssRules.has(base);
-
-    let cls = className || `s_${Math.random().toString(36).substr(2, 9)}`;
-    let rules = stringifyRules(buildRules(strings, values), cls);
-
-    if (merge) {
-      rules = mergeRules(cls, _cssRules.get(cls), rules);
+    if (_cssRules.has(className)) {
+      console.log(`warning: over-writing existing rules for ${className}. If this was not intended, use the base property.`);
     }
+
+    let mergeBase = !!base;
+    let cls = className || `s_${Math.random().toString(36).substr(2, 9)}`;
+    let rules = stringifyRules(buildRules(strings, values), mergeBase ? `${base}${cls}` : cls);
 
     if (mergeBase) {
-      let baseRules = _cssRules.get(base);
-
-      baseRules = baseRules.replace(/[^\}]*\{/, '');
-      baseRules = baseRules.replace(/\}$/, '');
-      rules = mergeRules(cls, baseRules, rules);
+      let baseRules = _cssRules.get(base) || '';
+      rules = mergeRules(base, baseRules, rules);
     }
 
-    _cssRules.set(cls, rules);
+    _cssRules.set(mergeBase ? base : cls, rules);
 
-    return styleProxy(cls);
+    return styleProxy(cls, base);
   };
 
-  const injectRules = id => {
+  const injectRules = (id, base) => {
     // Global rules should be first in order to cascade properly
     let allRules = new Map([..._globalRules, ..._cssRules]);
     allRules.forEach((value, key) => {
@@ -698,11 +692,13 @@
     });
   };
 
-  const unmountRules = className => {
+  const unmountRules = (className, base) => {
     let allRules = new Map([..._globalRules, ..._cssRules]);
     let styles = Array.prototype.slice.call(document.head.getElementsByTagName('style'), 0);
 
-    if (className) {
+    if (base) {
+      styles = styles.filter(f => f.id === base);
+    } else if (className) {
       styles = styles.filter(f => f.id === className);
     }
 
@@ -710,12 +706,20 @@
       var node = styles.filter(f => f.id === key)[0];
 
       if (node) {
-        document.head.removeChild(node);
+        if (base && base !== className) {
+          let regExp = new RegExp(`\.${base}${className}{[^}]*}`, 'gi');
+          let matches = regExp.exec(node.innerHTML);
+          Array.prototype.slice.call(matches, 0).forEach(match => {
+            node.innerHTML = node.innerHTML.replace(match, '');
+          });
+        } else {
+          document.head.removeChild(node);
 
-        if (_cssRules.has(key)) {
-          _cssRules.delete(key);
-        } else if (_globalRules.has(key)) {
-          _globalRules.delete(key);
+          if (_cssRules.has(key)) {
+            _cssRules.delete(key);
+          } else if (_globalRules.has(key)) {
+            _globalRules.delete(key);
+          }
         }
       }
     });
@@ -814,15 +818,15 @@
     }
   };
 
-  const styleProxy = cls => {
+  const styleProxy = (cls, base) => {
     return {
       className: cls,
       injectRules: () => {
-        injectRules.call(null, cls);
+        injectRules.call(null, cls, base);
         return styleProxy(cls);
       },
       unmountRules: () => {
-        unmountRules.call(null, cls);
+        unmountRules.call(null, cls, base);
         return styleProxy(cls);
       },
       applyRules: el => {
@@ -832,10 +836,11 @@
   };
 
   const mergeRules = (ns, ...rules) => {
-    return `.${ns}{` + (rules || []).reduce((prev, current) => {
-      prev += current.replace(`.${ns}{`, '').replace(/\}$/, '');
+    return (rules || []).reduce((prev, current) => {
+      //prev += current.replace(`.${ns}{`, '').replace(/\}$/, '');
+      prev += current.replace(':host', ns);
       return prev;
-    }, '') + '}';
+    }, '');
   };
 
   const restyled = create(el);
@@ -857,6 +862,23 @@
     --primary-color-active: maroon;
     --text-on-primary: white;
     --text-on-primary-active: yellow;
+`;
+  const label1 = css({
+    className: '--orange',
+    base: 'labels'
+  })`
+    :this {
+        color: orange;
+    }
+`; // no reference needed, injected with restyled.injectRules() call.
+
+  css({
+    className: '--blue',
+    base: 'labels'
+  })`
+    :this {
+        color: blue;
+    }
 `;
 
   class App {
@@ -882,13 +904,21 @@
             :this {
                 padding: 20px;
             }
-        `);
+        `, this.orangeLabel = el(`label.labels--orange`, {
+        textContent: 'Orange Label'
+      }), el(`label.labels--blue`, {
+        textContent: 'Blue Label'
+      }));
       this.theme = 'default';
     }
 
     onmount() {
       restyled.injectRules();
       defaultTheme.apply();
+      setTimeout(() => {
+        label1.unmountRules();
+        this.orangeLabel.textContent = 'Plain Label!';
+      }, 2000);
     }
 
     changeTheme() {
