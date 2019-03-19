@@ -845,22 +845,24 @@
   };
 
   const styleProxy = (cls, base, rules) => {
+    let id = base ? `${base}${cls}` : cls;
     return {
-      className: cls,
-      fullClassName: base ? `${base}${cls}` : cls,
+      className: id,
+      subClass: base ? cls : '',
       rules: () => rules,
       style: () => styleObject(rules),
       inlineStyle: () => inlineStyle(rules),
       injectRules: () => {
         injectRules.call(null, cls, base);
-        return styleProxy(cls);
+        return styleProxy(cls, base, rules);
       },
       unmountRules: () => {
         unmountRules.call(null, cls, base);
-        return styleProxy(cls);
+        return styleProxy(cls, base, rules);
       },
       applyRules: el => {
         selectorOrElement(el).forEach(elem => elem.classList.add(cls));
+        return styleProxy(cls, base, rules);
       }
     };
   };
