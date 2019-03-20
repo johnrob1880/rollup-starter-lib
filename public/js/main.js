@@ -645,11 +645,19 @@
     return classes.join(' ');
   }
 
-  const _themes = new Map();
+  if (typeof window !== 'undefined') {
+    window.restyled = {
+      themes: new Map(),
+      cssRules: new Map(),
+      globalRules: new Map()
+    };
+  }
 
-  const _cssRules = new Map();
+  let _themes = typeof window !== "undefined" ? window.restyled.themes : new Map();
 
-  const _globalRules = new Map();
+  const _cssRules = typeof window !== "undefined" ? window.restyled.cssRules : new Map();
+
+  const _globalRules = typeof window !== "undefined" ? window.restyled.globalRules : new Map();
 
   const css = props => (strings, ...values) => {
     const {
@@ -678,8 +686,20 @@
 
   const injectRules = (id, base) => {
     // Global rules should be first in order to cascade properly
-    let allRules = new Map([..._globalRules, ..._cssRules]);
-    allRules.forEach((value, key) => {
+    _globalRules.forEach((value, key) => {
+      if (document.getElementById(key)) {
+        return; // Already mounted
+      }
+
+      if (id && key !== id) {
+        return;
+      }
+
+      var sheet = createSheet(key, value);
+      document.head.appendChild(sheet);
+    });
+
+    _cssRules.forEach((value, key) => {
       if (document.getElementById(key)) {
         return; // Already mounted
       }

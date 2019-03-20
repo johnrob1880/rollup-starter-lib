@@ -3,9 +3,17 @@ import { createSheet, getSheet } from './sheet';
 import { isHtmlTag, isElement } from './utils';
 import classNames from './classNames';
 
-const _themes = new Map();
-const _cssRules = new Map();
-const _globalRules = new Map();
+if (typeof window !== 'undefined') {
+    window.restyled = {
+        themes: new Map(),
+        cssRules: new Map(),
+        globalRules: new Map()
+    }
+}
+
+let _themes = typeof window !== "undefined" ? window.restyled.themes : new Map();
+const _cssRules = typeof window !== "undefined" ? window.restyled.cssRules : new Map();
+const _globalRules = typeof window !== "undefined" ? window.restyled.globalRules : new Map();
 
 const css = (props) => (strings, ...values) => {
     const { className, base } = props || {};
@@ -40,7 +48,7 @@ const injectRules = (id, base) => {
         var sheet = createSheet(key, value);
         document.head.appendChild(sheet);
     });
-    
+
     _cssRules.forEach((value, key) => {
         if (document.getElementById(key)) {            
             return; // Already mounted
