@@ -645,19 +645,24 @@
     return classes.join(' ');
   }
 
-  if (typeof window !== 'undefined') {
-    window.restyled = {
-      themes: new Map(),
-      cssRules: new Map(),
-      globalRules: new Map()
+  const cssRules = new Map();
+  const globalRules = new Map();
+  const themes = new Map();
+  var cache = (() => {
+    if (typeof window !== undefined) {
+      window.restyled = window.restyled || {};
+      window.restyled.cssRules = window.restyled.cssRules || new Map();
+      window.restyled.globalRules = window.restyled.globalRules || new Map();
+      window.restyled.themes = window.restyled.themes || new Map();
+      return window.restyled;
+    }
+
+    return {
+      cssRules,
+      globalRules,
+      themes
     };
-  }
-
-  let _themes = typeof window !== "undefined" ? window.restyled.themes : new Map();
-
-  const _cssRules = typeof window !== "undefined" ? window.restyled.cssRules : new Map();
-
-  const _globalRules = typeof window !== "undefined" ? window.restyled.globalRules : new Map();
+  });
 
   const css = props => (strings, ...values) => {
     const {
@@ -665,7 +670,7 @@
       base
     } = props || {};
 
-    if (_cssRules.has(className)) {
+    if (cache().cssRules.has(className)) {
       console.log(`warning: over-writing existing rules for ${className}. If this was not intended, use the base property.`);
     }
 
@@ -675,46 +680,38 @@
     let originalRules = rules;
 
     if (mergeBase) {
-      let baseRules = _cssRules.get(base) || '';
+      let baseRules = cache().cssRules.get(base) || '';
       rules = mergeRules(base, baseRules, rules);
     }
 
-    _cssRules.set(mergeBase ? base : cls, rules);
-
+    cache().cssRules.set(mergeBase ? base : cls, rules);
     return styleProxy(cls, base, originalRules);
   };
 
-  const injectRules = (id, base) => {
-    // Global rules should be first in order to cascade properly
-    _globalRules.forEach((value, key) => {
-      if (document.getElementById(key)) {
-        return; // Already mounted
-      }
+  const injectRules = id => {
+    const inject = (map, name) => {
+      console.log(`restyled: injecting ${map.size} ${name} rules.`);
+      map.forEach((value, key) => {
+        if (document.getElementById(key)) {
+          return; // Already mounted
+        }
 
-      if (id && key !== id) {
-        return;
-      }
+        if (id && key !== id) {
+          return;
+        }
 
-      var sheet = createSheet(key, value);
-      document.head.appendChild(sheet);
-    });
+        var sheet = createSheet(key, value);
+        document.head.appendChild(sheet);
+      });
+    }; // Global rules should be first in order to cascade properly
 
-    _cssRules.forEach((value, key) => {
-      if (document.getElementById(key)) {
-        return; // Already mounted
-      }
 
-      if (id && key !== id) {
-        return;
-      }
-
-      var sheet = createSheet(key, value);
-      document.head.appendChild(sheet);
-    });
+    inject(cache().globalRules, 'global');
+    inject(cache().cssRules), 'css';
   };
 
   const unmountRules = (className, base) => {
-    let allRules = new Map([..._globalRules, ..._cssRules]);
+    //let allRules = new Map([..._globalRules, ..._cssRules]);
     let styles = Array.prototype.slice.call(document.head.getElementsByTagName('style'), 0);
 
     if (base) {
@@ -723,27 +720,33 @@
       styles = styles.filter(f => f.id === className);
     }
 
-    allRules.forEach((value, key) => {
-      var node = styles.filter(f => f.id === key)[0];
+    const unmount = map => {
+      console.log(`restyled: unmounting ${map.size} ${name} rules.`);
+      map.forEach((value, key) => {
+        var node = styles.filter(f => f.id === key)[0];
 
-      if (node) {
-        if (base && base !== className) {
-          let regExp = new RegExp(`\.${base}${className}{[^}]*}`, 'gi');
-          let matches = regExp.exec(node.innerHTML);
-          Array.prototype.slice.call(matches, 0).forEach(match => {
-            node.innerHTML = node.innerHTML.replace(match, '');
-          });
-        } else {
-          document.head.removeChild(node);
+        if (node) {
+          if (base && base !== className) {
+            let regExp = new RegExp(`\.${base}${className}{[^}]*}`, 'gi');
+            let matches = regExp.exec(node.innerHTML);
+            Array.prototype.slice.call(matches, 0).forEach(match => {
+              node.innerHTML = node.innerHTML.replace(match, '');
+            });
+          } else {
+            document.head.removeChild(node);
 
-          if (_cssRules.has(key)) {
-            _cssRules.delete(key);
-          } else if (_globalRules.has(key)) {
-            _globalRules.delete(key);
+            if (cache().cssRules.has(key)) {
+              cache().cssRules.delete(key);
+            } else if (cache().globalRules.has(key)) {
+              cache().globalRules.delete(key);
+            }
           }
         }
-      }
-    });
+      });
+    };
+
+    unmount(cache().globalRules);
+    unmount(cache().cssRules);
   };
 
   const extend = (el, prop, style, props) => {
@@ -758,16 +761,14 @@
     return {
       apply: () => {
         let sheet;
-
-        _themes.forEach((value, key) => {
+        cache().themes.forEach((value, key) => {
           sheet = getSheet(key);
 
           if (sheet) {
             sheet.parentNode.removeChild(sheet);
           }
         });
-
-        sheet = createSheet(name, _themes.get(name));
+        sheet = createSheet(name, cache().themes.get(name));
         document.head.insertBefore(sheet, document.head.firstElementChild);
         return name;
       }
@@ -777,9 +778,7 @@
   const theme = name => (strings, ...values) => {
     let rules = buildRules(strings, values);
     rules = `:root{${stringifyRules(rules, name)}}`;
-
-    _themes.set(name, rules);
-
+    cache().themes.set(name, rules);
     return themeProxy(name);
   };
 
