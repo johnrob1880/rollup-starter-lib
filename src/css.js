@@ -42,7 +42,7 @@ const injectRules = (id) => {
 
     // Global rules should be first in order to cascade properly
     inject(cache().globalRules, 'global');
-    inject(cache().cssRules), 'css';    
+    inject(cache().cssRules, 'css');    
 }
 
 const unmountRules = (className, base) => {
@@ -57,7 +57,7 @@ const unmountRules = (className, base) => {
         styles = styles.filter(f => f.id === className);
     }
 
-    const unmount = (map) => {
+    const unmount = (map, name) => {
         console.log(`restyled: unmounting ${map.size} ${name} rules.`);
         map.forEach((value, key) => {
             var node = styles.filter(f => f.id === key)[0];
@@ -82,8 +82,8 @@ const unmountRules = (className, base) => {
         });
     }
 
-    unmount(cache().globalRules);
-    unmount(cache().cssRules);
+    unmount(cache().globalRules, 'global');
+    unmount(cache().cssRules, 'css');
 }
 
 const extend = (el, prop, style, props) => {    
