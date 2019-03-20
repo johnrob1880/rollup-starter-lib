@@ -30,9 +30,7 @@ const css = (props) => (strings, ...values) => {
 const injectRules = (id, base) => {
 
     // Global rules should be first in order to cascade properly
-    let allRules = new Map([..._globalRules, ..._cssRules]);
-
-    allRules.forEach((value, key) => {
+    _globalRules.forEach((value, key) => {
         if (document.getElementById(key)) {            
             return; // Already mounted
         }
@@ -42,6 +40,19 @@ const injectRules = (id, base) => {
         var sheet = createSheet(key, value);
         document.head.appendChild(sheet);
     });
+    
+    _cssRules.forEach((value, key) => {
+        if (document.getElementById(key)) {            
+            return; // Already mounted
+        }
+        if (id && key !== id) {
+            return;
+        }
+        var sheet = createSheet(key, value);
+        document.head.appendChild(sheet);
+    });
+
+    
 }
 
 const unmountRules = (className, base) => {
