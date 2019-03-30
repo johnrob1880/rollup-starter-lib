@@ -1,5 +1,6 @@
 const createSheet = (id, rules) => {
     let sheet = document.createElement('style');
+    sheet.datset['restyled'] = true;
     sheet.type = 'text/css';
     sheet.innerHTML = rules
     sheet.id = id;

@@ -28,14 +28,18 @@ const injectRules = (id) => {
 
     const inject = (map, name) => {
         console.log(`restyled: injecting ${map.size} ${name} rules.`);
+        let sheet;
         map.forEach((value, key) => {
-            if (document.getElementById(key)) {            
-                return; // Already mounted
-            }
             if (id && key !== id) {
                 return;
             }
-            var sheet = createSheet(key, value);
+
+            if (sheet = document.getElementById(key)) { 
+                sheet.innerHTML = value;
+                return; // Already mounted
+            } 
+            
+            sheet = createSheet(key, value);
             document.head.appendChild(sheet);
         });
     }
